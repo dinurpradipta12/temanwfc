@@ -12,6 +12,7 @@ import {
   verifyAdminCredentials,
 } from './services/cafeApi';
 import { Cafe, CafeReview, RecommendationVote } from './types';
+import LocationPickerMap from './components/LocationPickerMap';
 import logoGreen from './logo-green.png';
 
 const ratingLabel = (rating: number) => {
@@ -36,10 +37,22 @@ const topRankBadge = (rank: number) => {
 };
 
 const formatRelativeTime = (value: string, now = Date.now()) => {
-  const diffMs = now - new Date(value).getTime();
+  const date = new Date(value);
+  const diffMs = now - date.getTime();
   const diffDays = Math.max(0, Math.round(diffMs / 86400000));
 
-  if (diffDays < 1) return 'Hari ini';
+  if (diffDays < 1) {
+    const timeLabel = new Intl.DateTimeFormat('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+    })
+      .format(date)
+      .toLowerCase();
+
+    return `Hari ini - ${timeLabel}`;
+  }
+
   if (diffDays < 30) return `${diffDays} hari lalu`;
 
   const diffMonths = Math.round(diffDays / 30);
@@ -80,6 +93,8 @@ const initialRecommendationForm = {
   coffeeShopName: '',
   location: '',
   address: '',
+  latitude: undefined as number | undefined,
+  longitude: undefined as number | undefined,
   openHours: '',
   price: 'Terjangkau',
   rating: 5,
@@ -99,6 +114,8 @@ type AdminCafeFormState = {
   coffeeShopName: string;
   location: string;
   address: string;
+  latitude?: number;
+  longitude?: number;
   openHours: string;
   price: string;
   rating: number;
@@ -131,6 +148,8 @@ const initialAdminCafeForm = (): AdminCafeFormState => ({
   coffeeShopName: '',
   location: '',
   address: '',
+  latitude: undefined,
+  longitude: undefined,
   openHours: '',
   price: 'Terjangkau',
   rating: 5,
@@ -174,6 +193,13 @@ const sortReviewsByPopularity = (reviews: CafeReview[]) =>
 
     return new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime();
   });
+
+const buildMapsUrl = (latitude?: number, longitude?: number, label?: string) => {
+  if (typeof latitude !== 'number' || typeof longitude !== 'number') return '';
+  const query = `${latitude},${longitude}`;
+  const suffix = label ? ` (${label})` : '';
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query + suffix)}`;
+};
 
 const readPersistedOnboardingState = () => {
   if (typeof window === 'undefined') {
@@ -641,6 +667,8 @@ function App() {
       coffeeShopName: cafe.name,
       location: cafe.location ?? cafe.area,
       address: cafe.address ?? '',
+      latitude: cafe.latitude,
+      longitude: cafe.longitude,
       openHours: cafe.openHours,
       price: cafe.price,
       rating: primaryReview?.rating ?? 5,
@@ -865,6 +893,8 @@ function App() {
         area: adminCafeForm.location,
         location: adminCafeForm.location,
         address: adminCafeForm.address,
+        latitude: adminCafeForm.latitude,
+        longitude: adminCafeForm.longitude,
         vibe: adminCafeForm.recommendationVote === 'like' ? 'direkomendasikan' : 'perlu dicek',
         wifi: adminCafeForm.checklist.includes('wifi cepat') ? 'cepat' : 'stabil',
         price: adminCafeForm.price,
@@ -1605,31 +1635,40 @@ function App() {
                   </div>
                 </div>
                 <h2>{selectedCafe.name}</h2>
+                <div className="detail-summary-row" aria-label={`Rating ${selectedCafe.averageRating.toFixed(1)} dari ${selectedCafe.reviewCount} review`}>
+                  <strong className="detail-summary-rating-number">{selectedCafe.averageRating.toFixed(1)}</strong>
+                  <div className="detail-summary-stars" aria-label={`${selectedCafe.averageRating.toFixed(1)} bintang`}>
+                    {Array.from({ length: 5 }, (_, index) => (
+                      <span key={index} className={selectedCafe.averageRating >= index + 1 ? 'active' : ''}>
+                        ★
+                      </span>
+                    ))}
+                  </div>
+                  <span className="detail-summary-reviews">({selectedCafe.reviewCount})</span>
+                </div>
                 <p>
                   {selectedCafe.location ?? selectedCafe.area} · {selectedCafe.price} · buka {selectedCafe.openHours}
                 </p>
                 {selectedCafe.address ? <p>{selectedCafe.address}</p> : null}
+                {typeof selectedCafe.latitude === 'number' && typeof selectedCafe.longitude === 'number' ? (
+                  <div className="detail-map-action-row">
+                    <a
+                      className="map-link-button"
+                      href={buildMapsUrl(selectedCafe.latitude, selectedCafe.longitude, selectedCafe.name)}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      Buka titik lokasi
+                    </a>
+                    <span className="muted map-coordinates-label">
+                      {selectedCafe.latitude.toFixed(6)}, {selectedCafe.longitude.toFixed(6)}
+                    </span>
+                  </div>
+                ) : null}
                 <div className="tag-row">
                   {selectedCafe.tags.map((tag) => (
                     <span key={tag}>{tag}</span>
                   ))}
-                </div>
-                <div className="hero-stats detail-stats">
-                  <div className="detail-stat-card">
-                    <strong>{selectedCafe.reviewCount}</strong>
-                    <span>Review</span>
-                  </div>
-                  <div className="detail-rating-card detail-stat-card">
-                    <strong className="detail-rating-number">{selectedCafe.averageRating.toFixed(1)}</strong>
-                    <div className="detail-rating-stars" aria-label={`${selectedCafe.averageRating.toFixed(1)} bintang`}>
-                      {Array.from({ length: 5 }, (_, index) => (
-                        <span key={index} className={selectedCafe.averageRating >= index + 1 ? 'active' : ''}>
-                          ★
-                        </span>
-                      ))}
-                    </div>
-                    <span>Rating</span>
-                  </div>
                 </div>
                 {primaryReview ? (
                   <section className="primary-review-panel inline">
@@ -2122,6 +2161,39 @@ function App() {
                 </div>
 
                 <div className="modal-section">
+                  <div className="modal-section-head">
+                    <span className="modal-label">Titik lokasi Coffeeshop</span>
+                    <button
+                      type="button"
+                      className="map-clear-button"
+                      onClick={() => setAdminCafeForm({ ...adminCafeForm, latitude: undefined, longitude: undefined })}
+                    >
+                      Reset titik
+                    </button>
+                  </div>
+                  <div className="map-coordinate-readout">
+                    {typeof adminCafeForm.latitude === 'number' && typeof adminCafeForm.longitude === 'number'
+                      ? `${adminCafeForm.latitude.toFixed(6)}, ${adminCafeForm.longitude.toFixed(6)}`
+                      : 'Belum ada titik dipilih'}
+                  </div>
+                  <LocationPickerMap
+                    value={
+                      typeof adminCafeForm.latitude === 'number' && typeof adminCafeForm.longitude === 'number'
+                        ? { latitude: adminCafeForm.latitude, longitude: adminCafeForm.longitude }
+                        : undefined
+                    }
+                    locationLabel={adminCafeForm.location}
+                    onChange={({ latitude, longitude }) =>
+                      setAdminCafeForm({
+                        ...adminCafeForm,
+                        latitude,
+                        longitude,
+                      })
+                    }
+                  />
+                </div>
+
+                <div className="modal-section">
                   <span className="modal-label">Rating</span>
                   <div className="star-rating" aria-label="rating">
                     {recommendationStars.map((value) => (
@@ -2430,6 +2502,42 @@ function App() {
                       <option value="Lainnya">Lainnya</option>
                     </select>
                   </label>
+                </div>
+
+                <div className="modal-section">
+                  <div className="modal-section-head">
+                    <span className="modal-label">Titik lokasi Coffeeshop</span>
+                    <button
+                      type="button"
+                      className="map-clear-button"
+                      onClick={() =>
+                        setRecommendationForm({ ...recommendationForm, latitude: undefined, longitude: undefined })
+                      }
+                    >
+                      Reset titik
+                    </button>
+                  </div>
+                  <div className="map-coordinate-readout">
+                    {typeof recommendationForm.latitude === 'number' && typeof recommendationForm.longitude === 'number'
+                      ? `${recommendationForm.latitude.toFixed(6)}, ${recommendationForm.longitude.toFixed(6)}`
+                      : 'Belum ada titik dipilih'}
+                  </div>
+                  <LocationPickerMap
+                    value={
+                      typeof recommendationForm.latitude === 'number' &&
+                      typeof recommendationForm.longitude === 'number'
+                        ? { latitude: recommendationForm.latitude, longitude: recommendationForm.longitude }
+                        : undefined
+                    }
+                    locationLabel={recommendationForm.location}
+                    onChange={({ latitude, longitude }) =>
+                      setRecommendationForm({
+                        ...recommendationForm,
+                        latitude,
+                        longitude,
+                      })
+                    }
+                  />
                 </div>
 
                 <div className="modal-section">

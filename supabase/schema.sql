@@ -32,6 +32,8 @@ create table if not exists public.cafes (
   area text not null,
   location text not null,
   address text not null,
+  latitude double precision,
+  longitude double precision,
   vibe text not null default 'direkomendasikan',
   wifi text not null default 'stabil',
   price text not null default 'Variatif',
@@ -61,6 +63,8 @@ create table if not exists public.reviews (
 
 alter table public.cafes add column if not exists thumbnail_image text;
 alter table public.cafes add column if not exists photo_thumbnail_urls text[] not null default '{}';
+alter table public.cafes add column if not exists latitude double precision;
+alter table public.cafes add column if not exists longitude double precision;
 alter table public.reviews add column if not exists likes_count integer not null default 0;
 alter table public.reviews add column if not exists photo_thumbnail_url text;
 alter table public.reviews add column if not exists photo_thumbnail_urls text[] not null default '{}';
@@ -196,6 +200,8 @@ create or replace function public.add_recommendation(
   p_coffee_shop_name text,
   p_location text,
   p_address text,
+  p_latitude double precision,
+  p_longitude double precision,
   p_open_hours text,
   p_price text,
   p_rating integer,
@@ -222,6 +228,8 @@ begin
     area,
     location,
     address,
+    latitude,
+    longitude,
     vibe,
     wifi,
     price,
@@ -229,8 +237,7 @@ begin
     tags,
     image,
     thumbnail_image,
-    photo_urls
-    ,
+    photo_urls,
     photo_thumbnail_urls
   )
   values (
@@ -239,6 +246,8 @@ begin
     p_location,
     p_location,
     p_address,
+    p_latitude,
+    p_longitude,
     case when p_recommendation_vote = 'like' then 'direkomendasikan' else 'perlu dicek' end,
     case when 'wifi cepat' = any(checklist_items) then 'cepat' else 'stabil' end,
     coalesce(nullif(p_price, ''), case when 'harga terjangkau' = any(checklist_items) then 'Terjangkau' else 'Variatif' end),
@@ -287,6 +296,8 @@ grant execute on function public.add_recommendation(
   text,
   text,
   text,
+  double precision,
+  double precision,
   text,
   text,
   integer,

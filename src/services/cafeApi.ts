@@ -23,6 +23,8 @@ type CafeRow = {
   area: string;
   location: string | null;
   address: string | null;
+  latitude: number | null;
+  longitude: number | null;
   vibe: string;
   wifi: string;
   price: string;
@@ -230,6 +232,8 @@ const mapCafeRows = (cafes: CafeRow[], reviews: ReviewRow[]) => {
       area: cafe.area,
       location: cafe.location ?? cafe.area,
       address: cafe.address ?? undefined,
+      latitude: cafe.latitude ?? undefined,
+      longitude: cafe.longitude ?? undefined,
       vibe: cafe.vibe,
       wifi: cafe.wifi,
       price: cafe.price,
@@ -263,7 +267,7 @@ async function fetchSupabaseCafes(): Promise<Cafe[]> {
   const [{ data: cafes, error: cafeError }, { data: reviews, error: reviewError }] = await Promise.all([
     supabase
       .from('cafes')
-      .select('id,name,area,location,address,vibe,wifi,price,open_hours,tags,image,thumbnail_image,photo_urls,photo_thumbnail_urls')
+      .select('*')
       .order('created_at', { ascending: true }),
     supabase
       .from('reviews')
@@ -398,6 +402,8 @@ export async function updateCafe(cafeId: string, payload: CafeUpdateInput): Prom
       area: payload.area,
       location: payload.location,
       address: payload.address,
+      latitude: payload.latitude,
+      longitude: payload.longitude,
       vibe: payload.vibe,
       wifi: payload.wifi,
       price: payload.price,
@@ -423,6 +429,8 @@ export async function updateCafe(cafeId: string, payload: CafeUpdateInput): Prom
       area: payload.area,
       location: payload.location,
       address: payload.address,
+      latitude: payload.latitude,
+      longitude: payload.longitude,
       vibe: payload.vibe,
       wifi: payload.wifi,
       price: payload.price,
@@ -572,6 +580,8 @@ export async function addRecommendation(payload: RecommendationInput): Promise<C
       area: payload.location,
       location: payload.location,
       address: payload.address,
+      latitude: payload.latitude,
+      longitude: payload.longitude,
       vibe: payload.recommendationVote === 'like' ? 'direkomendasikan' : 'perlu dicek',
       wifi: payload.checklist.includes('wifi cepat') ? 'cepat' : 'stabil',
       price: payload.price,
@@ -632,6 +642,8 @@ export async function addRecommendation(payload: RecommendationInput): Promise<C
     p_coffee_shop_name: payload.coffeeShopName,
     p_location: payload.location,
     p_address: payload.address,
+    p_latitude: payload.latitude ?? null,
+    p_longitude: payload.longitude ?? null,
     p_open_hours: payload.openHours,
     p_price: payload.price,
     p_rating: payload.rating,

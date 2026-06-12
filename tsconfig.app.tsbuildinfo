@@ -1,1 +1,1 @@
-{"root":["./src/app.tsx","./src/data.ts","./src/main.tsx","./src/types.ts","./src/vite-env.d.ts","./src/lib/supabaseclient.ts","./src/services/cafeapi.ts"],"version":"5.9.3"}
+{"root":["./src/app.tsx","./src/data.ts","./src/main.tsx","./src/types.ts","./src/vite-env.d.ts","./src/components/locationpickermap.tsx","./src/lib/supabaseclient.ts","./src/services/cafeapi.ts"],"version":"5.9.3"}
