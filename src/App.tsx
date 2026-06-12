@@ -86,6 +86,8 @@ const recommendationChecklist = [
   'cocok untuk meeting',
   'tidak terlalu bising',
   'ramah untuk kerja lama',
+  'smoking room AC',
+  'smoking room non-AC',
 ];
 
 const initialRecommendationForm = {
@@ -93,6 +95,7 @@ const initialRecommendationForm = {
   coffeeShopName: '',
   location: '',
   address: '',
+  mapsUrl: '',
   latitude: undefined as number | undefined,
   longitude: undefined as number | undefined,
   openHours: '',
@@ -114,6 +117,7 @@ type AdminCafeFormState = {
   coffeeShopName: string;
   location: string;
   address: string;
+  mapsUrl: string;
   latitude?: number;
   longitude?: number;
   openHours: string;
@@ -148,6 +152,7 @@ const initialAdminCafeForm = (): AdminCafeFormState => ({
   coffeeShopName: '',
   location: '',
   address: '',
+  mapsUrl: '',
   latitude: undefined,
   longitude: undefined,
   openHours: '',
@@ -193,6 +198,8 @@ const sortReviewsByPopularity = (reviews: CafeReview[]) =>
 
     return new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime();
   });
+
+const normalizeChecklistItem = (value: string) => value.trim().replace(/\s+/g, ' ');
 
 const buildMapsUrl = (latitude?: number, longitude?: number, label?: string) => {
   if (typeof latitude !== 'number' || typeof longitude !== 'number') return '';
@@ -345,6 +352,7 @@ function App() {
   const [adminReviewForm, setAdminReviewForm] = useState<AdminReviewFormState>(initialAdminReviewForm());
   const [adminCafePhotos, setAdminCafePhotos] = useState<PhotoUpload[]>([]);
   const [adminCafeEditPhotos, setAdminCafeEditPhotos] = useState<ManagedCafePhoto[]>([]);
+  const [adminCustomChecklist, setAdminCustomChecklist] = useState('');
   const [adminActionError, setAdminActionError] = useState('');
   const [deletedCafeIds, setDeletedCafeIds] = useState<string[]>(persistedDeletedState.cafeIds);
   const [deletedReviewIds, setDeletedReviewIds] = useState<string[]>(persistedDeletedState.reviewIds);
@@ -354,6 +362,7 @@ function App() {
   const [recommendationError, setRecommendationError] = useState('');
   const [reviewError, setReviewError] = useState('');
   const [recommendationForm, setRecommendationForm] = useState(initialRecommendationForm);
+  const [recommendationCustomChecklist, setRecommendationCustomChecklist] = useState('');
   const [reviewForm, setReviewForm] = useState(initialReviewForm);
   const [recommendationPhotos, setRecommendationPhotos] = useState<PhotoUpload[]>([]);
   const [reviewPhotos, setReviewPhotos] = useState<PhotoUpload[]>([]);
@@ -667,6 +676,7 @@ function App() {
       coffeeShopName: cafe.name,
       location: cafe.location ?? cafe.area,
       address: cafe.address ?? '',
+      mapsUrl: cafe.mapsUrl ?? '',
       latitude: cafe.latitude,
       longitude: cafe.longitude,
       openHours: cafe.openHours,
@@ -688,6 +698,7 @@ function App() {
       })),
     );
     setAdminCafePhotos([]);
+    setAdminCustomChecklist('');
     setAdminEditor({ type: 'cafe', cafeId: cafe.id });
   };
 
@@ -712,6 +723,19 @@ function App() {
           : [...current.checklist, item],
       };
     });
+  };
+
+  const addAdminCustomChecklist = () => {
+    const item = normalizeChecklistItem(adminCustomChecklist);
+    if (!item) return;
+
+    setAdminCafeForm((current) => ({
+      ...current,
+      checklist: current.checklist.some((entry) => entry.toLowerCase() === item.toLowerCase())
+        ? current.checklist
+        : [...current.checklist, item],
+    }));
+    setAdminCustomChecklist('');
   };
 
   const handleAdminCafePhotoUpload = async (files: FileList | null) => {
@@ -893,6 +917,7 @@ function App() {
         area: adminCafeForm.location,
         location: adminCafeForm.location,
         address: adminCafeForm.address,
+        mapsUrl: adminCafeForm.mapsUrl,
         latitude: adminCafeForm.latitude,
         longitude: adminCafeForm.longitude,
         vibe: adminCafeForm.recommendationVote === 'like' ? 'direkomendasikan' : 'perlu dicek',
@@ -1152,6 +1177,19 @@ function App() {
     });
   };
 
+  const addRecommendationCustomChecklist = () => {
+    const item = normalizeChecklistItem(recommendationCustomChecklist);
+    if (!item) return;
+
+    setRecommendationForm((current) => ({
+      ...current,
+      checklist: current.checklist.some((entry) => entry.toLowerCase() === item.toLowerCase())
+        ? current.checklist
+        : [...current.checklist, item],
+    }));
+    setRecommendationCustomChecklist('');
+  };
+
   const removeRecommendationPhoto = (index: number) => {
     setRecommendationPhotos((current) => {
       const target = current[index];
@@ -1194,6 +1232,7 @@ function App() {
       setSelectedCafeId(createdCafe?.id ?? updated[0]?.id ?? '');
       setViewMode('detail');
       setRecommendationForm(initialRecommendationForm);
+      setRecommendationCustomChecklist('');
       recommendationPhotos.forEach((photo) => URL.revokeObjectURL(photo.previewUrl));
       setRecommendationPhotos([]);
       setIsRecommendationOpen(false);
@@ -1650,24 +1689,30 @@ function App() {
                   {selectedCafe.location ?? selectedCafe.area} · {selectedCafe.price} · buka {selectedCafe.openHours}
                 </p>
                 {selectedCafe.address ? <p>{selectedCafe.address}</p> : null}
-                {typeof selectedCafe.latitude === 'number' && typeof selectedCafe.longitude === 'number' ? (
+                {selectedCafe.mapsUrl ||
+                (typeof selectedCafe.latitude === 'number' && typeof selectedCafe.longitude === 'number') ? (
                   <div className="detail-map-action-row">
                     <a
                       className="map-link-button"
-                      href={buildMapsUrl(selectedCafe.latitude, selectedCafe.longitude, selectedCafe.name)}
+                      href={selectedCafe.mapsUrl || buildMapsUrl(selectedCafe.latitude, selectedCafe.longitude, selectedCafe.name)}
                       target="_blank"
                       rel="noreferrer"
                     >
-                      Buka titik lokasi
+                      Buka Google Maps
                     </a>
-                    <span className="muted map-coordinates-label">
-                      {selectedCafe.latitude.toFixed(6)}, {selectedCafe.longitude.toFixed(6)}
-                    </span>
+                    {typeof selectedCafe.latitude === 'number' && typeof selectedCafe.longitude === 'number' ? (
+                      <span className="muted map-coordinates-label">
+                        {selectedCafe.latitude.toFixed(6)}, {selectedCafe.longitude.toFixed(6)}
+                      </span>
+                    ) : null}
                   </div>
                 ) : null}
-                <div className="tag-row">
+                <div className="detail-feature-list" aria-label="Kebutuhan WFC">
                   {selectedCafe.tags.map((tag) => (
-                    <span key={tag}>{tag}</span>
+                    <span key={tag}>
+                      <span aria-hidden="true">✓</span>
+                      {tag}
+                    </span>
                   ))}
                 </div>
                 {primaryReview ? (
@@ -2137,6 +2182,14 @@ function App() {
                     />
                   </label>
                   <label>
+                    Link Google Maps
+                    <input
+                      value={adminCafeForm.mapsUrl}
+                      onChange={(event) => setAdminCafeForm({ ...adminCafeForm, mapsUrl: event.target.value })}
+                      placeholder="https://maps.app.goo.gl/..."
+                    />
+                  </label>
+                  <label>
                     Jam buka Coffeeshop
                     <input
                       required
@@ -2214,7 +2267,7 @@ function App() {
                 <div className="modal-section">
                   <span className="modal-label">Checklist kebutuhan WFC</span>
                   <div className="checklist-grid">
-                    {recommendationChecklist.map((item) => (
+                    {Array.from(new Set([...recommendationChecklist, ...adminCafeForm.checklist])).map((item) => (
                       <button
                         key={item}
                         type="button"
@@ -2224,6 +2277,22 @@ function App() {
                         {item}
                       </button>
                     ))}
+                  </div>
+                  <div className="custom-checklist-row">
+                    <input
+                      value={adminCustomChecklist}
+                      onChange={(event) => setAdminCustomChecklist(event.target.value)}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter') {
+                          event.preventDefault();
+                          addAdminCustomChecklist();
+                        }
+                      }}
+                      placeholder="Checklist lainnya, contoh: area outdoor luas"
+                    />
+                    <button type="button" onClick={addAdminCustomChecklist}>
+                      Tambah
+                    </button>
                   </div>
                 </div>
 
@@ -2479,6 +2548,14 @@ function App() {
                     />
                   </label>
                   <label>
+                    Link Google Maps
+                    <input
+                      value={recommendationForm.mapsUrl}
+                      onChange={(event) => setRecommendationForm({ ...recommendationForm, mapsUrl: event.target.value })}
+                      placeholder="https://maps.app.goo.gl/..."
+                    />
+                  </label>
+                  <label>
                     Jam buka Coffeeshop
                     <input
                       required
@@ -2561,7 +2638,7 @@ function App() {
                 <div className="modal-section">
                   <span className="modal-label">Checklist kebutuhan WFC</span>
                   <div className="checklist-grid">
-                    {recommendationChecklist.map((item) => (
+                    {Array.from(new Set([...recommendationChecklist, ...recommendationForm.checklist])).map((item) => (
                       <button
                         key={item}
                         type="button"
@@ -2571,6 +2648,22 @@ function App() {
                         {item}
                       </button>
                     ))}
+                  </div>
+                  <div className="custom-checklist-row">
+                    <input
+                      value={recommendationCustomChecklist}
+                      onChange={(event) => setRecommendationCustomChecklist(event.target.value)}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter') {
+                          event.preventDefault();
+                          addRecommendationCustomChecklist();
+                        }
+                      }}
+                      placeholder="Checklist lainnya, contoh: area outdoor luas"
+                    />
+                    <button type="button" onClick={addRecommendationCustomChecklist}>
+                      Tambah
+                    </button>
                   </div>
                 </div>
 

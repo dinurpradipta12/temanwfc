@@ -19,6 +19,7 @@ export type Cafe = {
   area: string;
   location?: string;
   address?: string;
+  mapsUrl?: string;
   latitude?: number;
   longitude?: number;
   vibe: string;
@@ -50,6 +51,7 @@ export type RecommendationInput = {
   coffeeShopName: string;
   location: string;
   address: string;
+  mapsUrl?: string;
   latitude?: number;
   longitude?: number;
   openHours: string;
@@ -67,6 +69,7 @@ export type CafeUpdateInput = {
   area: string;
   location: string;
   address: string;
+  mapsUrl?: string;
   latitude?: number;
   longitude?: number;
   vibe: string;

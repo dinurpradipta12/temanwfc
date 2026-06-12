@@ -23,6 +23,7 @@ type CafeRow = {
   area: string;
   location: string | null;
   address: string | null;
+  maps_url: string | null;
   latitude: number | null;
   longitude: number | null;
   vibe: string;
@@ -232,6 +233,7 @@ const mapCafeRows = (cafes: CafeRow[], reviews: ReviewRow[]) => {
       area: cafe.area,
       location: cafe.location ?? cafe.area,
       address: cafe.address ?? undefined,
+      mapsUrl: cafe.maps_url ?? undefined,
       latitude: cafe.latitude ?? undefined,
       longitude: cafe.longitude ?? undefined,
       vibe: cafe.vibe,
@@ -402,6 +404,7 @@ export async function updateCafe(cafeId: string, payload: CafeUpdateInput): Prom
       area: payload.area,
       location: payload.location,
       address: payload.address,
+      mapsUrl: payload.mapsUrl,
       latitude: payload.latitude,
       longitude: payload.longitude,
       vibe: payload.vibe,
@@ -429,6 +432,7 @@ export async function updateCafe(cafeId: string, payload: CafeUpdateInput): Prom
       area: payload.area,
       location: payload.location,
       address: payload.address,
+      maps_url: payload.mapsUrl || null,
       latitude: payload.latitude,
       longitude: payload.longitude,
       vibe: payload.vibe,
@@ -580,6 +584,7 @@ export async function addRecommendation(payload: RecommendationInput): Promise<C
       area: payload.location,
       location: payload.location,
       address: payload.address,
+      mapsUrl: payload.mapsUrl,
       latitude: payload.latitude,
       longitude: payload.longitude,
       vibe: payload.recommendationVote === 'like' ? 'direkomendasikan' : 'perlu dicek',
@@ -642,6 +647,7 @@ export async function addRecommendation(payload: RecommendationInput): Promise<C
     p_coffee_shop_name: payload.coffeeShopName,
     p_location: payload.location,
     p_address: payload.address,
+    p_maps_url: payload.mapsUrl ?? null,
     p_latitude: payload.latitude ?? null,
     p_longitude: payload.longitude ?? null,
     p_open_hours: payload.openHours,

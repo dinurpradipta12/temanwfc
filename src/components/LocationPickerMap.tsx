@@ -31,6 +31,28 @@ const INDONESIA_CENTER: Coordinates = {
   longitude: 118.0149,
 };
 
+const COORDINATE_PATTERN = /(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)/;
+
+function normalizeCoordinates(latitude: number, longitude: number): Coordinates | null {
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return null;
+  if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) return null;
+
+  return {
+    latitude: Number(latitude.toFixed(6)),
+    longitude: Number(longitude.toFixed(6)),
+  };
+}
+
+function parseCoordinatesFromText(value: string): Coordinates | null {
+  const decodedValue = decodeURIComponent(value.trim());
+  if (!decodedValue) return null;
+
+  const coordinateMatch = decodedValue.match(COORDINATE_PATTERN);
+  if (!coordinateMatch) return null;
+
+  return normalizeCoordinates(Number(coordinateMatch[1]), Number(coordinateMatch[2]));
+}
+
 function guessCenter(locationLabel?: string): Coordinates {
   const normalized = locationLabel?.trim().toLowerCase();
   if (!normalized) return INDONESIA_CENTER;
@@ -82,6 +104,27 @@ export default function LocationPickerMap({ value, locationLabel, onChange }: Pr
   const mapCenter: LatLngExpression = [center.latitude, center.longitude];
   const [locationStatus, setLocationStatus] = useState('');
   const [isLocating, setIsLocating] = useState(false);
+  const [coordinateInput, setCoordinateInput] = useState('');
+
+  useEffect(() => {
+    if (!value) {
+      setCoordinateInput('');
+      return;
+    }
+
+    setCoordinateInput(`${value.latitude}, ${value.longitude}`);
+  }, [value]);
+
+  const applyTextCoordinates = (inputValue: string, successMessage: string, errorMessage: string) => {
+    const coordinates = parseCoordinatesFromText(inputValue);
+    if (!coordinates) {
+      setLocationStatus(errorMessage);
+      return;
+    }
+
+    onChange(coordinates);
+    setLocationStatus(successMessage);
+  };
 
   const handleUseCurrentLocation = () => {
     if (!navigator.geolocation) {
@@ -115,6 +158,30 @@ export default function LocationPickerMap({ value, locationLabel, onChange }: Pr
 
   return (
     <div className="location-picker-map-shell">
+      <div className="location-input-grid single">
+        <label className="location-input-field">
+          Koordinat manual
+          <div className="location-input-action">
+            <input
+              value={coordinateInput}
+              onChange={(event) => setCoordinateInput(event.target.value)}
+              placeholder="-3.320861, 114.586703"
+            />
+            <button
+              type="button"
+              onClick={() =>
+                applyTextCoordinates(
+                  coordinateInput,
+                  'Titik koordinat berhasil dipakai.',
+                  'Format koordinat belum valid.',
+                )
+              }
+            >
+              Pakai
+            </button>
+          </div>
+        </label>
+      </div>
       <div className="location-picker-actions">
         <button type="button" className="map-current-location-button" onClick={handleUseCurrentLocation} disabled={isLocating}>
           <span aria-hidden="true">⌖</span>
