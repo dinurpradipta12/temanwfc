@@ -504,7 +504,7 @@ function App() {
     const keyword = search.trim().toLowerCase();
     const normalizedLocation = locationFilter.trim().toLowerCase();
     return cafesWithScore.filter((cafe) => {
-      const haystack = [cafe.name, cafe.area, cafe.vibe, cafe.wifi, cafe.price, ...cafe.tags]
+      const haystack = [cafe.name, cafe.area, cafe.location, cafe.address, cafe.vibe, cafe.wifi, cafe.price, ...cafe.tags]
         .join(' ')
         .toLowerCase();
       const matchesKeyword = !keyword || haystack.includes(keyword);
@@ -518,7 +518,7 @@ function App() {
     });
   }, [cafesWithScore, search, locationFilter]);
 
-  const displayedCafes = useMemo(() => filteredCafes.slice(0, 4), [filteredCafes]);
+  const displayedCafes = filteredCafes;
 
   const weeklyTopCafes = useMemo(() => {
     const now = Date.now();
